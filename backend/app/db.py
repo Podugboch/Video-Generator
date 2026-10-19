@@ -2,7 +2,23 @@ from supabase import create_client
 
 from . import config
 
-db = create_client(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY)
+_client = None
+
+def get_db():
+    global _client
+    if _client is None:
+        if not config.SUPABASE_URL or not config.SUPABASE_SERVICE_KEY:
+            raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables must be configured.")
+        _client = create_client(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY)
+    return _client
+
+
+class _DBProxy:
+    def __getattr__(self, name):
+        return getattr(get_db(), name)
+
+
+db = _DBProxy()
 
 
 def upload(path: str, data: bytes, content_type: str) -> str:

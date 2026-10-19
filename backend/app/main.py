@@ -25,9 +25,15 @@ ACTIVE = ("queued", "rendering")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.redis = await create_pool(RedisSettings.from_dsn(config.REDIS_URL))
+    app.state.redis = None
+    if config.REDIS_URL:
+        try:
+            app.state.redis = await create_pool(RedisSettings.from_dsn(config.REDIS_URL))
+        except Exception as e:
+            log.warning(f"Could not connect to Redis at {config.REDIS_URL}: {e}")
     yield
-    await app.state.redis.close()
+    if getattr(app.state, "redis", None):
+        await app.state.redis.close()
 
 
 app = FastAPI(title="VideoGen API", lifespan=lifespan)
@@ -223,6 +229,8 @@ def _prepare_render(project_id: str, user_id: str) -> None:
 async def render_project(project_id: str, request: Request, user=Depends(current_user)):
     await run_in_threadpool(_prepare_render, project_id, user.id)
     try:
+        if not getattr(request.app.state, "redis", None):
+            raise RuntimeError("Redis connection pool is not initialized")
         await request.app.state.redis.enqueue_job("render_job", project_id)
     except Exception:
         log.exception("enqueue failed")

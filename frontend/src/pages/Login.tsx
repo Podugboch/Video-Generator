@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { supabase } from "../supabase";
+import { supabase, isSupabaseConfigured } from "../supabase";
 
-export default function Login() {
+export default function Login({ onDemoLogin }: { onDemoLogin?: () => void }) {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +11,12 @@ export default function Login() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isSupabaseConfigured) {
+      setError(
+        "Supabase credentials are not configured yet. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your Render static site environment variables, or click 'Explore UI in Demo Mode' below.",
+      );
+      return;
+    }
     setBusy(true);
     setError("");
     setNotice("");
@@ -33,6 +39,27 @@ export default function Login() {
       </div>
       <h1 className="mb-1 font-display text-2xl font-bold">Turn a topic into a 30-second video</h1>
       <p className="mb-6 text-slate">Create an account and get enough free credits for your first video.</p>
+
+      {!isSupabaseConfigured && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 shadow-xs">
+          <div className="mb-1 flex items-center gap-1.5 font-bold text-amber-950">
+            <span>⚙️</span>
+            <span>Supabase Connection Needed</span>
+          </div>
+          <p className="leading-relaxed text-amber-800">
+            To sign up and save projects, configure <code className="rounded bg-amber-200/60 px-1 py-0.5 font-mono text-[11px]">VITE_SUPABASE_URL</code> and <code className="rounded bg-amber-200/60 px-1 py-0.5 font-mono text-[11px]">VITE_SUPABASE_ANON_KEY</code> in Render environment variables.
+          </p>
+          {onDemoLogin && (
+            <button
+              type="button"
+              onClick={onDemoLogin}
+              className="mt-2.5 inline-block font-bold text-amber-900 underline underline-offset-2 hover:text-black cursor-pointer"
+            >
+              Preview App (Demo Mode) →
+            </button>
+          )}
+        </div>
+      )}
 
       <form onSubmit={submit} className="space-y-3">
         <label className="block">

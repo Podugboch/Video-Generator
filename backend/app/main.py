@@ -28,7 +28,10 @@ async def lifespan(app: FastAPI):
     app.state.redis = None
     if config.REDIS_URL:
         try:
-            app.state.redis = await create_pool(RedisSettings.from_dsn(config.REDIS_URL))
+            settings = RedisSettings.from_dsn(config.REDIS_URL)
+            settings.conn_retries = 1
+            settings.conn_timeout = 2.0
+            app.state.redis = await create_pool(settings)
         except Exception as e:
             log.warning(f"Could not connect to Redis at {config.REDIS_URL}: {e}")
     yield
@@ -111,7 +114,14 @@ class Verify(BaseModel):
 
 
 # ---------- routes ----------
+@app.get("/")
+@app.head("/")
+def root():
+    return {"ok": True, "service": "VideoGen API"}
+
+
 @app.get("/health")
+@app.head("/health")
 def health():
     return {"ok": True}
 

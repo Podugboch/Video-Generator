@@ -1,0 +1,81 @@
+services:
+  - type: web
+    name: videogen-api
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FAL_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: videogen-redis
+          property: connectionString
+
+  - type: web
+    name: videogen-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: videogen-api
+          property: host
+
+  - type: redis
+    name: videogen-redis
+    plan: free
+    region: virginia
+    ipAllowList: []
+
+# Background worker (uncomment when payment method is added to Render for starter plan):
+#   - type: worker
+#     name: videogen-worker
+#     runtime: docker
+#     plan: starter
+#     region: virginia
+#     dockerContext: ./backend
+#     dockerfilePath: ./backend/Dockerfile
+#     dockerCommand: arq app.worker.WorkerSettings
+#     envVars:
+#       - key: SUPABASE_URL
+#         sync: false
+#       - key: SUPABASE_SERVICE_KEY
+#         sync: false
+#       - key: ANTHROPIC_API_KEY
+#         sync: false
+#       - key: FAL_KEY
+#         sync: false
+#       - key: ELEVENLABS_API_KEY
+#         sync: false
+#       - key: REDIS_URL
+#         fromService:
+#           type: redis
+#           name: videogen-redis
+#           property: connectionString

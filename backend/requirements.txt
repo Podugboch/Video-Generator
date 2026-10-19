@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+supabase
+anthropic
+fal-client
+httpx
+arq
+python-dotenv
